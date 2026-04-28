@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Frontend Translation API Test</title>
+</head>
+<body>
+  <h2>Translation API Frontend Test</h2>
+  <button id="login">1) Login</button>
+  <button id="create">2) Create</button>
+  <button id="search">3) Search</button>
+  <button id="export">4) Export</button>
+  <pre id="out"></pre>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+    let token = "";
+
+    function show(data) {
+      document.getElementById("out").textContent =
+        typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    async function call(path, options = {}) {
+      const res = await fetch(API + path, options);
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = text; }
+      if (!res.ok) throw { status: res.status, body: json };
+      return json;
+    }
+
+    document.getElementById("login").onclick = async () => {
+      try {
+        const data = await call("/api/auth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            email: "admin@example.com",
+            password: "password",
+            device_name: "frontend"
+          })
+        });
+        token = data.token;
+        show({ message: "Login success", token });
+      } catch (e) { show(e); }
+    };
+
+    document.getElementById("create").onclick = async () => {
+      try {
+        const data = await call("/api/translations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({
+            key: "frontend.button.save",
+            locale: "en",
+            content: "Save",
+            tags: ["web", "desktop"]
+          })
+        });
+        show(data);
+      } catch (e) { show(e); }
+    };
+
+    document.getElementById("search").onclick = async () => {
+      try {
+        const data = await call("/api/translations?key=frontend&content=Save", {
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer " + token
+          }
+        });
+        show(data);
+      } catch (e) { show(e); }
+    };
+
+    document.getElementById("export").onclick = async () => {
+      try {
+        const data = await call("/api/translations/export", {
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer " + token
+          }
+        });
+        show(data);
+      } catch (e) { show(e); }
+    };
+  </script>
+</body>
+</html>
